@@ -39,6 +39,13 @@
 <!-- The path a submission takes, from arriving to the label a reader sees.
      Six or seven steps — this is the trace you wrote in Milestone 1. -->
 
+1. **Route (`app.py::submit`).** Receives `{text, creator_id}`. Rejects missing, empty, too-short or oversized text before any model runs, and adds a `content_id` (uuid), the only handle `/appeal` can use later. Rate limiting is added here in unit 8.
+2. **Signal one (`detector.py::model_signal`).** gpt2 reads the first 400 tokens and adds a perplexity, squashed to 0–1 (higher = more AI). This is the "reads for meaning" opinion.
+3. **Signal two (`stylometry.py::style_signal`).** Looks at the whole text as shapes: sentence-length spread, type-token ratio and punctuation density, each flipped and scaled so higher = more AI. This is the "doesn't read" opinion.
+4. **Combining rule (`scoring.py::combine_signals`).** Turns two opinions into one `combined_score`. This is where a disagreement between signals either becomes "unsure" or gets overruled.
+5. **Label mapping (`scoring.py::score_to_label`).** Applies the thresholds in `config.py` and adds `guess` (`human`/`unsure`/`ai`), a `confidence`, and plain-language text a writer can read.
+6. **Audit log (`audit.py::log_decision`).** Appends one line with all nine fields and `status: decided`. Both signal scores are logged, not just the combined one.
+7. **Response, then appeal.** The reader sees the label, and the response carries both signal scores for unit 8's tools. If they disagree, `/appeal` appends an entry and flips `status` to `under_review`; the original decision stays in the log.
 
 
 ---
@@ -53,19 +60,37 @@
 
 ### Signal one — the model signal
 
-**What it measures:**
+**What it measures:** how predictable the text is to gpt2, as perplexity (first 400 tokens only), mapped to 0–1 where higher means more AI.
 
-**Why that might differ between human and AI writing:**
+**Why that might differ between human and AI writing:** a generative model picks likely next words, so its output is easy for a similar model to predict. People pick odd, specific, abrupt words.
 
-**What it can't see:**
+**What it can't see:** authorship. It only sees *common words in short, ordinary sentences*, which also describes second-language writers, younger writers and anyone writing plainly on purpose, so they score as AI. In the other direction, ornate prose full of rare words scores as human, so an AI told to write "elaborately" slips through. It also never sees anything past the first 400 tokens.
 
 ### Signal two — the style signal
 
-**What it measures:**
+**What it measures:** shape only: how much sentence length varies (stdev ÷ mean), how much vocabulary repeats (type-token ratio), and how dense and varied the punctuation is.
 
-**Why that might differ between human and AI writing:**
+**Why that might differ between human and AI writing:** generated prose tends toward even, mid-length sentences and a narrow vocabulary. Human writing is lumpier.
 
-**What it can't see:**
+**What it can't see:** meaning, so it is cheap to move without changing substance. Typos raise vocabulary variety, chopping sentences raises spread, and a pasted quotation or a few em dashes change punctuation. Type-token ratio also falls as text gets longer, so a long human essay can look repetitive. A one-sentence input has no spread, so it returns a neutral 0.5 and signal one carries it.
+
+The two blind spots are mostly independent: plain human writing fools signal one, and light edits to AI text fool signal two.
+
+### The false positive that sets the thresholds
+
+**The writer:** a student writing in their second language submits a plain 150-word reflection they wrote themselves.
+
+- **Scores (estimates, to be confirmed in Milestone 4):** signal one roughly 0.70–0.75 (common vocabulary, short ordinary sentences); signal two roughly 0.6–0.7 (even sentence lengths). Combined at 0.5/0.5 is about 0.68, over the 0.65 threshold: a wrongful "high-confidence AI".
+- **What the label says:** on the placeholder numbers, an accusation.
+- **What they can do:** `POST /appeal` with reasoning. It only sets `under_review`; nothing re-checks automatically, so a person has to read it.
+
+Both signals fail in the same direction for this writer, so averaging doesn't rescue them. Consequences:
+
+- Raise `AI_THRESHOLD` to about 0.80, deliberately hard to reach, because a wrong AI label costs a writer far more than a missed AI text costs us.
+- Keep `HUMAN_THRESHOLD` near 0.35. The wide "unsure" band is where this writer should land.
+- Word the "unsure" and "AI" labels as estimates with a visible appeal path, never as a verdict.
+
+The cost is that more AI text gets through, and that falls on whoever relies on the label.
 
 ### The combining rule
 
