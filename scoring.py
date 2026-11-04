@@ -52,10 +52,16 @@ def combine_signals(model_score: float, style_score: float) -> float:
     The weights in config.py are placeholders. Change them, or ignore them and
     write a different rule.
     """
-    # TODO: replace this
-    return (
+    # THE RULE: a weighted average, 0.5 model + 0.5 style (weights in config.py).
+    # When the signals split, the average lands in between, which with the
+    # thresholds in config.py (0.35 / 0.80) means "unsure": two methods
+    # disagreeing IS uncertainty. A text only reaches the AI label when BOTH
+    # signals are high, which is deliberate - a wrong AI label costs the writer
+    # far more than a missed AI text costs the site.
+    return round(
         config.WEIGHT_MODEL_SIGNAL * model_score
-        + config.WEIGHT_STYLE_SIGNAL * style_score
+        + config.WEIGHT_STYLE_SIGNAL * style_score,
+        4,
     )
 
 

@@ -33,6 +33,23 @@ anything together:
 import re
 import statistics
 
+# type_token_ratio looks at this many words, so texts of different lengths
+# are measured on the same footing.
+TTR_WINDOW = 70
+
+# How each raw measure maps onto a 0-1 "AI-like" score: a value at or beyond
+# the *_AI end scores 1.0, at or beyond the *_HUMAN end scores 0.0, linear
+# between. These ends were set by looking at the 25 files in samples/ - so they
+# are calibrated on the same texts they are tested on. Treat results on those
+# files as optimistic.
+SPREAD_AI, SPREAD_HUMAN = 0.15, 0.60    # sentence-length coefficient of variation
+TTR_AI, TTR_HUMAN = 0.65, 0.90          # unique words / words, first 70 words
+PUNCT_AI, PUNCT_HUMAN = 0.03, 0.15      # non-full-stop punctuation per word
+
+# Spread did nearly all the separating on the samples; TTR and punctuation
+# showed no usable difference, so they carry little weight.
+WEIGHT_SPREAD, WEIGHT_TTR, WEIGHT_PUNCT = 0.8, 0.1, 0.1
+
 
 def sentences(text: str) -> list[str]:
     """Split into sentences. Rough and good enough — given to you."""
@@ -64,8 +81,15 @@ def sentence_length_spread(text: str) -> float:
     `stdev` raises on fewer than two values. Decide what that should return
     before the attack set decides for you.
     """
-    # TODO: replace this
-    return 0.0
+    lengths = [len(words(s)) for s in sentences(text)]
+    lengths = [n for n in lengths if n > 0]
+    # One sentence has no spread. Return 0.0 here; style_signal() checks the
+    # sentence count itself and leaves this measure out rather than treating
+    # "can't tell" as "very AI-like".
+    if len(lengths) < 2:
+        return 0.0
+    mean = statistics.mean(lengths)
+    return statistics.stdev(lengths) / mean  # coefficient of variation
 
 
 def type_token_ratio(text: str) -> float:
@@ -80,8 +104,13 @@ def type_token_ratio(text: str) -> float:
     directly comparable on it, and if your test inputs vary a lot in length,
     that alone can look like a signal.
     """
-    # TODO: replace this
-    return 0.0
+    # Only the first TTR_WINDOW words count. TTR falls as text gets longer, so
+    # measuring every text over the same number of words keeps a 90-word
+    # comment and a 250-word one comparable.
+    tokens = words(text)[:TTR_WINDOW]
+    if not tokens:
+        return 0.0
+    return len(set(tokens)) / len(tokens)
 
 
 def punctuation_density(text: str) -> float:
@@ -94,8 +123,14 @@ def punctuation_density(text: str) -> float:
         more interesting than full stops, because they vary more between
         writers.
     """
-    # TODO: replace this
-    return 0.0
+    n_words = len(words(text))
+    if n_words == 0:
+        return 0.0
+    # Everything except the full stop: commas, semicolons, colons, dashes,
+    # brackets, quotes, apostrophes, question and exclamation marks. Full stops
+    # just count sentences, which sentence_length_spread already covers.
+    marks = re.findall(r"[,;:!?()\"'“”‘’—–…-]", text)
+    return len(marks) / n_words
 
 
 # ── Combining them ───────────────────────────────────────────────────────────
@@ -122,8 +157,27 @@ def style_signal(text: str) -> float:
     you trust it. Plain and ordinary, not formal: formal prose reads as *human*
     to signal one, and it is plain writing that gets accused.
     """
-    # TODO: replace this
-    return 0.5
+    # A one-sentence input has no spread to measure. Say "can't tell" (0.5)
+    # and let signal one carry it, instead of calling it AI-like.
+    if len(sentences(text)) < 2:
+        return 0.5
+
+    def clamp(x: float) -> float:
+        return min(max(x, 0.0), 1.0)
+
+    # Each measure becomes a 0-1 "how AI-like" score, higher = more AI.
+    # Low spread -> AI-like (even sentences). Low TTR -> AI-like (narrow
+    # vocabulary). Low punctuation -> AI-like (flat, uncomplicated).
+    spread_score = clamp((SPREAD_HUMAN - sentence_length_spread(text)) / (SPREAD_HUMAN - SPREAD_AI))
+    ttr_score = clamp((TTR_HUMAN - type_token_ratio(text)) / (TTR_HUMAN - TTR_AI))
+    punct_score = clamp((PUNCT_HUMAN - punctuation_density(text)) / (PUNCT_HUMAN - PUNCT_AI))
+
+    score = (
+        WEIGHT_SPREAD * spread_score
+        + WEIGHT_TTR * ttr_score
+        + WEIGHT_PUNCT * punct_score
+    )
+    return round(clamp(score), 4)
 
 
 if __name__ == "__main__":

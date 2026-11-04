@@ -31,6 +31,8 @@ from flask import Flask, jsonify, request
 import audit
 import config
 import detector
+import scoring
+import stylometry
 
 app = Flask(__name__)
 
@@ -226,12 +228,14 @@ def submit():
     if len(text.split()) < MIN_TEXT_WORDS:
         return refuse(422, "text_too_short", f"Text needs at least {MIN_TEXT_WORDS} words to be scored.")
 
-    # Milestone 3: ONE real signal. The second signal, the combining rule and
-    # the label come in Milestones 4 and 5, so those fields are placeholders.
+    # Two signals, one combined score. The label is still a placeholder until
+    # Milestone 5.
     try:
         model_score = detector.model_signal(text)
     except detector.DetectorUnavailable as exc:
         return refuse(503, "detector_unavailable", str(exc).splitlines()[0])
+    style_score = stylometry.style_signal(text)
+    combined_score = scoring.combine_signals(model_score, style_score)
 
     content_id = str(uuid.uuid4())
 
@@ -240,8 +244,8 @@ def submit():
         creator_id=creator_id,
         guess=None,                 # placeholder until Milestone 5
         model_score=model_score,
-        style_score=None,           # placeholder until Milestone 4
-        combined_score=None,        # placeholder until Milestone 4
+        style_score=style_score,
+        combined_score=combined_score,
         label=None,                 # placeholder until Milestone 5
         status="decided",
     )
@@ -252,7 +256,8 @@ def submit():
         "confidence": 0.5,          # placeholder
         "label": "PLACEHOLDER",     # placeholder
         "model_score": model_score,
-        "style_score": None,        # placeholder until Milestone 4
+        "style_score": style_score,
+        "combined_score": combined_score,
         "status": "decided",
     })
 
