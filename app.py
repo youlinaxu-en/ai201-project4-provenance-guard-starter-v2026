@@ -30,8 +30,13 @@ from flask import Flask, jsonify, request
 
 import audit
 import config
+import detector
 
 app = Flask(__name__)
+
+# Input limits for /submit. Chosen in Milestone 1; see criteria.md, criterion 5.
+MIN_TEXT_WORDS = 20
+MAX_TEXT_CHARS = 20_000
 
 
 # ── Rate limiting — UNIT 8 ────────────────────────────────────────────────────
@@ -199,21 +204,56 @@ def submit():
     what should this do when `text` is missing, empty, or enormous? A crash on
     a malformed input is one of the most common real failures there is.
     """
-    payload = request.get_json(silent=True) or {}
+    payload = request.get_json(silent=True)
+    creator_id = payload.get("creator_id") if isinstance(payload, dict) else None
+    log_creator = creator_id if isinstance(creator_id, str) and creator_id.strip() else "unknown"
 
-    # Milestone 3, step 1: a hardcoded response. No logic yet, so if curl gets
-    # this back, the route works and any later problem is in the signal.
+    def refuse(status, error, message):
+        """A refused input still leaves a trace in the log."""
+        audit.log_rejection(creator_id=log_creator, reason=error)
+        return jsonify({"error": error, "message": message}), status
+
+    if not isinstance(payload, dict):
+        return refuse(400, "invalid_json", "The request body must be a JSON object.")
+
+    text = payload.get("text")
+    if not isinstance(text, str) or not text.strip():
+        return refuse(400, "missing_field", "'text' is required and must be a non-empty string.")
+    if not isinstance(creator_id, str) or not creator_id.strip():
+        return refuse(400, "missing_field", "'creator_id' is required and must be a non-empty string.")
+    if len(text) > MAX_TEXT_CHARS:
+        return refuse(413, "text_too_long", f"Text is over {MAX_TEXT_CHARS} characters.")
+    if len(text.split()) < MIN_TEXT_WORDS:
+        return refuse(422, "text_too_short", f"Text needs at least {MIN_TEXT_WORDS} words to be scored.")
+
+    # Milestone 3: ONE real signal. The second signal, the combining rule and
+    # the label come in Milestones 4 and 5, so those fields are placeholders.
+    try:
+        model_score = detector.model_signal(text)
+    except detector.DetectorUnavailable as exc:
+        return refuse(503, "detector_unavailable", str(exc).splitlines()[0])
+
+    content_id = str(uuid.uuid4())
+
+    audit.log_decision(
+        content_id=content_id,
+        creator_id=creator_id,
+        guess=None,                 # placeholder until Milestone 5
+        model_score=model_score,
+        style_score=None,           # placeholder until Milestone 4
+        combined_score=None,        # placeholder until Milestone 4
+        label=None,                 # placeholder until Milestone 5
+        status="decided",
+    )
+
     return jsonify({
-        "content_id": "hardcoded-test-id",
-        "guess": "unsure",
-        "confidence": 0.5,
-        "label": "PLACEHOLDER",
-        "model_score": 0.0,
-        "style_score": 0.0,
-        "you_sent": {
-            "text_length": len(payload.get("text", "")),
-            "creator_id": payload.get("creator_id"),
-        },
+        "content_id": content_id,
+        "guess": "unsure",          # placeholder
+        "confidence": 0.5,          # placeholder
+        "label": "PLACEHOLDER",     # placeholder
+        "model_score": model_score,
+        "style_score": None,        # placeholder until Milestone 4
+        "status": "decided",
     })
 
 
