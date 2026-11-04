@@ -97,9 +97,16 @@ The cost is that more AI text gets through, and that falls on whoever relies on 
 <!-- Write the rule in words, then give the numbers. What happens when the two
      signals disagree? -->
 
-**The rule:**
+**The rule:** the combined score is the average of the two signals, each counting half. When the signals disagree, the average lands in the middle, which is the "unsure" band: two methods disagreeing *is* uncertainty. A text only gets the AI label when **both** signals are high. That is deliberate: a wrong AI label costs a writer far more than a missed AI text costs the site.
 
 **The numbers:**
+
+- `combined = 0.5 × model_score + 0.5 × style_score` (`WEIGHT_MODEL_SIGNAL`, `WEIGHT_STYLE_SIGNAL` in `config.py`)
+- Combined ≤ **0.35** → human. Combined ≥ **0.80** → AI. Between → unsure. I raised `AI_THRESHOLD` from the starter's 0.65 to 0.80 for the reason above.
+- Inside `style_signal`, the three measures are weighted **0.8** sentence-length spread, **0.1** type-token ratio, **0.1** punctuation density. On my 25 sample files only the sentence-length spread separated AI from human; the other two showed no usable difference (AI text even had a *higher* type-token ratio), so they carry little weight.
+- Signal one's midpoint (45) and steepness (1.6) are unchanged from the starter.
+
+⚠️ The style signal's scaling ends were set by looking at the same 25 files I tested on, so scores on those files are optimistic. The real test is new input.
 
 **Where it lives:** `scoring.py::combine_signals`
 
@@ -107,6 +114,8 @@ The cost is that more AI text gets through, and that falls on whoever relies on 
      somewhere else, say where. -->
 
 **A case where my two signals split, and what my rule does with it:**
+
+`samples/human_01.txt` is a real person's Reddit comment with unusually even sentence lengths. The model signal reads it as human-ish (**0.426**) but the style signal reads it as AI-ish (**0.730**), because the style signal only sees that the sentences are all about the same length. The average is **0.578**, so the rule calls it "unsure": not accused, not cleared. The opposite split also happens: `samples/comment_09.txt` scores **0.603** on the model signal but only **0.063** on style (its sentences vary a lot), and averages to **0.333**, a "human" label.
 
 
 
@@ -121,14 +130,13 @@ The cost is that more AI text gets through, and that falls on whoever relies on 
 
 | Label | Score range | The exact text a reader sees |
 |---|---|---|
-| high-confidence human |  |  |
-| unsure |  |  |
-| high-confidence AI |  |  |
+| high-confidence human | 0.00 – 0.35 | We think this was probably written by a person. Nothing in it looked like the kind of writing automated tools produce. |
+| unsure | 0.35 – 0.80 | We can't tell. Our checks gave mixed results, so this is not a finding that anyone used AI. If you wrote it yourself, you don't need to do anything. If you'd like a person to look at it, you can appeal. |
+| high-confidence AI | 0.80 – 1.00 | This looks like it was probably written by an AI tool. This is an estimate, not proof, and we can be wrong. If you wrote it yourself, please appeal and a person will read it. |
+
+All three are reachable: in my tests `samples/comment_05.txt` scored 0.138 (human), `samples/formal_01.txt` scored 0.507 (unsure) and `samples/ai_02.txt` scored 0.813 (AI).
 
 **Why I worded the "unsure" one this way:**
-<!-- It's the hardest of the three. It has to admit uncertainty without
-     sounding like an accusation, because the person reading it may well have
-     written every word themselves. -->
 
 
 
@@ -146,14 +154,25 @@ The cost is that more AI text gets through, and that falls on whoever relies on 
      two off the response, so leaving them out costs you next unit's
      diagnostics. -->
 
+The text is the opening paragraph of *The Prisoner of Zenda* (1894, public domain), a formal piece of human writing; it is shortened to `...` below and in full in `samples/formal_01.txt`.
+
 ```bash
 $ curl -X POST http://127.0.0.1:5000/submit \
   -H "Content-Type: application/json" \
-  -d '{"text": "...", "creator_id": "..."}'
+  -d '{"text": "When I read a story, I skip the explanations; ...", "creator_id": "student-1"}'
 ```
 
 ```json
-
+{
+  "combined_score": 0.507,
+  "confidence": 0.51,
+  "content_id": "453eba19-c3ca-4e9f-b884-32222c80bc6c",
+  "guess": "unsure",
+  "label": "We can't tell. Our checks gave mixed results, so this is not a finding that anyone used AI. If you wrote it yourself, you don't need to do anything. If you'd like a person to look at it, you can appeal.",
+  "model_score": 0.469,
+  "status": "decided",
+  "style_score": 0.545
+}
 ```
 
 **An appeal**
@@ -161,21 +180,48 @@ $ curl -X POST http://127.0.0.1:5000/submit \
 ```bash
 $ curl -X POST http://127.0.0.1:5000/appeal \
   -H "Content-Type: application/json" \
-  -d '{"content_id": "...", "reasoning": "..."}'
+  -d '{"content_id": "453eba19-c3ca-4e9f-b884-32222c80bc6c", "reasoning": "I wrote this myself for class."}'
 ```
 
 ```json
-
+{
+  "content_id": "453eba19-c3ca-4e9f-b884-32222c80bc6c",
+  "message": "Thank you. A person will read your appeal. Your original result stays on record.",
+  "status": "under_review"
+}
 ```
 
 **What the log shows afterwards**
 
 ```bash
-$ curl "http://127.0.0.1:5000/log?limit=3"
+$ curl "http://127.0.0.1:5000/log?limit=2"
 ```
 
 ```json
-
+{
+  "count": 2,
+  "entries": [
+    {
+      "combined_score": 0.507,
+      "content_id": "453eba19-c3ca-4e9f-b884-32222c80bc6c",
+      "creator_id": "student-1",
+      "guess": "unsure",
+      "label": "We can't tell. Our checks gave mixed results, so this is not a finding that anyone used AI. If you wrote it yourself, you don't need to do anything. If you'd like a person to look at it, you can appeal.",
+      "model_score": 0.469,
+      "status": "decided",
+      "style_score": 0.545,
+      "timestamp": "2026-11-04T23:46:51+00:00"
+    },
+    {
+      "content_id": "453eba19-c3ca-4e9f-b884-32222c80bc6c",
+      "creator_id": "student-1",
+      "event": "appeal",
+      "reasoning": "I wrote this myself for class.",
+      "status": "under_review",
+      "timestamp": "2026-11-04T23:46:52+00:00"
+    }
+  ]
+}
 ```
 
 ---

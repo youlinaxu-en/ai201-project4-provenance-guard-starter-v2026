@@ -39,6 +39,7 @@ app = Flask(__name__)
 # Input limits for /submit. Chosen in Milestone 1; see criteria.md, criterion 5.
 MIN_TEXT_WORDS = 20
 MAX_TEXT_CHARS = 20_000
+MAX_REASONING_CHARS = 2_000
 
 
 # ── Rate limiting — UNIT 8 ────────────────────────────────────────────────────
@@ -237,24 +238,28 @@ def submit():
     style_score = stylometry.style_signal(text)
     combined_score = scoring.combine_signals(model_score, style_score)
 
+    guess, label = scoring.score_to_label(combined_score)
+    # Confidence in the guess: how far the combined score is from a coin flip.
+    confidence = round(max(combined_score, 1 - combined_score), 2)
+
     content_id = str(uuid.uuid4())
 
     audit.log_decision(
         content_id=content_id,
         creator_id=creator_id,
-        guess=None,                 # placeholder until Milestone 5
+        guess=guess,
         model_score=model_score,
         style_score=style_score,
         combined_score=combined_score,
-        label=None,                 # placeholder until Milestone 5
+        label=label,
         status="decided",
     )
 
     return jsonify({
         "content_id": content_id,
-        "guess": "unsure",          # placeholder
-        "confidence": 0.5,          # placeholder
-        "label": "PLACEHOLDER",     # placeholder
+        "guess": guess,
+        "confidence": confidence,
+        "label": label,
         "model_score": model_score,
         "style_score": style_score,
         "combined_score": combined_score,
@@ -282,14 +287,43 @@ def appeal():
     to the person on the other end. It's the only thing standing between a
     wrong accusation and nothing at all.
     """
-    payload = request.get_json(silent=True) or {}
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": "invalid_json",
+                        "message": "The request body must be a JSON object."}), 400
 
-    # TODO: delete this and build the route.
+    content_id = payload.get("content_id")
+    reasoning = payload.get("reasoning")
+    if not isinstance(content_id, str) or not content_id.strip():
+        return jsonify({"error": "missing_field",
+                        "message": "'content_id' is required."}), 400
+    if not isinstance(reasoning, str) or not reasoning.strip():
+        return jsonify({"error": "missing_field",
+                        "message": "'reasoning' is required: tell us why you think this is wrong."}), 400
+    if len(reasoning) > MAX_REASONING_CHARS:
+        return jsonify({"error": "reasoning_too_long",
+                        "message": f"Please keep it under {MAX_REASONING_CHARS} characters."}), 413
+
+    # Check the id exists. A typo here must not look like a successful appeal.
+    history = audit.entries_for(content_id)
+    decision = next((e for e in history if e.get("event") is None), None)
+    if decision is None:
+        return jsonify({"error": "unknown_content_id",
+                        "message": "We couldn't find a submission with that content_id."}), 404
+    if any(e.get("event") == "appeal" for e in history):
+        return jsonify({"error": "already_under_review",
+                        "message": "This submission is already under review."}), 409
+
+    audit.log_appeal(
+        content_id=content_id,
+        creator_id=decision.get("creator_id"),
+        reasoning=reasoning.strip(),
+    )
     return jsonify({
-        "error": "not_implemented",
-        "message": "POST /appeal isn't built yet — see the TODO in app.py.",
-        "you_sent": payload,
-    }), 501
+        "content_id": content_id,
+        "status": "under_review",
+        "message": "Thank you. A person will read your appeal. Your original result stays on record.",
+    })
 
 
 # ── Already works ─────────────────────────────────────────────────────────────
