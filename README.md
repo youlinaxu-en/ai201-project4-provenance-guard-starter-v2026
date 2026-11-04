@@ -137,7 +137,7 @@ The cost is that more AI text gets through, and that falls on whoever relies on 
 All three are reachable: in my tests `samples/comment_05.txt` scored 0.138 (human), `samples/formal_01.txt` scored 0.507 (unsure) and `samples/ai_02.txt` scored 0.813 (AI).
 
 **Why I worded the "unsure" one this way:**
-
+I talked with claude, and then deleted "plain and even" to avoid it was expalined as "your writing part is normal".
 
 
 ---
@@ -230,15 +230,15 @@ $ curl "http://127.0.0.1:5000/log?limit=2"
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:*Ask AI to judge the comment work or not
+- *What came back:* Claude checked the topic of each comments and give opinions
+- *What I changed:*Some unrealted opinions were deleted in collection part
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* Ask Claude to check errors 
+- *What came back:* it gives me some feedback about the signal history 
+- *What I changed:* I checked each of them to make sure we dont't have divergence on that
 
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 
