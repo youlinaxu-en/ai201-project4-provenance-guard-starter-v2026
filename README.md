@@ -246,25 +246,27 @@ $ curl "http://127.0.0.1:5000/log?limit=2"
 
 ## Rate Limiting
 
-**My limits:** ___ per minute, ___ per day
+**My limits:** 6 per minute, 60 per day
 
 **Why those numbers and not others:**
+
+A real writer revising a piece might submit a draft, tweak it and resubmit a few times in a burst, then not come back for hours. Six a minute and sixty a day is far more than that, so they should never see a 429. A script probing for my thresholds wants hundreds of slightly different variations; sixty a day makes that slow, not impossible (it could still binary-search one threshold in a handful of probes). Each submission also runs a language model, so a cap protects the machine too. I kept the per-minute limit low enough that a flood of 15 gets cut off after 6.
 <!-- Think about two people: a real writer submitting their own work a few
      times an hour, and a script sending a thousand variations to map your
      thresholds. Your numbers have to be liveable for the first and hostile to
      the second. -->
 
-**What a caller counts as:** <!-- per address, or per creator_id? They fail
-differently — one script can look like a thousand callers, and one household
-can look like one. -->
+**What a caller counts as:** the `creator_id` in the request body, falling back to the caller's address when there isn't a usable one (`app.py::rate_limit_key`). The weakness: a script that changes `creator_id` on every request looks like a thousand callers and never hits the limit, while every malformed request with no `creator_id` shares one address and one allowance.
 
 **The run of status codes when I pushed past it:**
 
-<!-- python run_attacks.py --flood 15 -->
+`python run_attacks.py --flood 15` (one `creator_id`, `flood_tester`):
 
 ```
-
+200 200 200 200 200 200 429 429 429 429 429 429 429 429 429
 ```
+
+9 of 15 were rate limited. `GET /log` shows each rejection (`event: rejected`, `reason: rate_limited`, `limit: 6 per 1 minute`).
 
 ---
 

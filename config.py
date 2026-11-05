@@ -93,10 +93,14 @@ AI_THRESHOLD = 0.80   # raised from 0.65: a wrong AI label costs a writer far mo
 # an hour, and a script sending a thousand variations to map your thresholds.
 # Your README has to say why your numbers and not others.
 
-RATE_LIMITING_ENABLED = os.getenv("AI201_RATE_LIMITS", "0") == "1"
+RATE_LIMITING_ENABLED = True
 
-RATE_LIMIT_PER_MINUTE = 10
-RATE_LIMIT_PER_DAY = 200
+# A writer revising a piece might submit a draft, tweak it and resubmit a few
+# times in a burst, then not come back for hours: 6 a minute and 60 a day is
+# far more than that. A script probing for the thresholds wants hundreds of
+# variations, so 60 a day makes mapping them slow, though not impossible.
+RATE_LIMIT_PER_MINUTE = 6
+RATE_LIMIT_PER_DAY = 60
 
 # Flask-Limiter warns loudly without this. In-memory is right for one laptop
 # and wrong for anything real — a restart forgets every count, and two copies
