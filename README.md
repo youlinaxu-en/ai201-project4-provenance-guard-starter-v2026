@@ -275,6 +275,67 @@ A real writer revising a piece might submit a draft, tweak it and resubmit a few
 <!-- Every attack with its outcome and a held-or-broke mark.
      `run_attacks.py --label before` produces the table. -->
 
+| ID | Family | What it targeted | Status | Guess | Model | Style | Combined | Verdict |
+|---|---|---|---|---|---|---|---|---|
+| EV01 | evasion | signal two: typos raise word variety | 200 | unsure | 0.164 | 0.867 | 0.515 |  |
+| EV02 | evasion | signal two: broken-up sentences raise length spread | 200 | human | 0.594 | 0.100 | 0.347 |  |
+| EV03 | evasion | signal two: a pasted quotation changes the shape | 200 | unsure | 0.666 | 0.325 | 0.495 |  |
+| EV04 | evasion | signal one: unusual words raise perplexity | 200 | unsure | 0.611 | 0.834 | 0.723 |  |
+| EV05 | evasion | both signals: heavy human editing pass | 200 | human | 0.321 | 0.082 | 0.202 |  |
+| EV06 | evasion | signal two: one very long sentence and one very short | 200 | unsure | 0.573 | 0.166 | 0.370 |  |
+| EV07 | evasion | signal two: padding with punctuation | 200 | unsure | 0.586 | 0.500 | 0.543 |  |
+| EV08 | evasion | signal one: text below the token window | 422 | — | — | — | — |  |
+| EV09 | evasion | both: AI text with a human opening paragraph bolted on | 200 | unsure | 0.704 | 0.291 | 0.498 |  |
+| EV10 | evasion | signal two: repeated stanza structure | 200 | unsure | 0.979 | 0.566 | 0.773 |  |
+| FP01 | false_positive | plain, clear human writing with no flourishes | 200 | unsure | 0.618 | 0.399 | 0.508 |  |
+| FP02 | false_positive | human writing in a formal register | 200 | unsure | 0.739 | 0.814 | 0.776 |  |
+| FP03 | false_positive | a non-native English speaker writing carefully | 200 | unsure | 0.805 | 0.646 | 0.726 |  |
+| FP04 | false_positive | a student essay written to a rubric | 200 | unsure | 0.833 | 0.551 | 0.692 |  |
+| FP05 | false_positive | technical documentation written by a person | 200 | unsure | 0.800 | 0.774 | 0.787 |  |
+| FP06 | false_positive | a person imitating a formal template | 200 | unsure | 0.881 | 0.310 | 0.596 |  |
+| FP07 | false_positive | human writing that repeats a phrase deliberately | 200 | unsure | 0.882 | 0.197 | 0.539 |  |
+| FP08 | false_positive | very short genuine human submission | 422 | — | — | — | — |  |
+| PI01 | prompt_injection | instruction to ignore the check | 200 | human | 0.463 | 0.100 | 0.281 |  |
+| PI02 | prompt_injection | instruction disguised as a system message | 200 | human | 0.204 | 0.088 | 0.146 |  |
+| PI03 | prompt_injection | instruction wrapped in the writer's voice | 200 | unsure | 0.594 | 0.536 | 0.565 |  |
+| PI04 | prompt_injection | attempt to make the label text hostile | 200 | unsure | 0.500 | 0.403 | 0.452 |  |
+| PI05 | prompt_injection | attempt to inject into the audit log | 200 | unsure | 0.640 | 0.229 | 0.434 |  |
+| PI06 | prompt_injection | instruction plus real human text | 200 | unsure | 0.558 | 0.409 | 0.484 |  |
+| MF01 | malformed | text is only whitespace | 400 | — | — | — | — |  |
+| MF02 | malformed | text is a single character | 422 | — | — | — | — |  |
+| MF03 | malformed | text is control characters | 422 | — | — | — | — |  |
+| MF04 | malformed | text is only punctuation | 422 | — | — | — | — |  |
+| MF05 | malformed | text is a very long single word | 422 | — | — | — | — |  |
+| MF06 | malformed | text is emoji only | 422 | — | — | — | — |  |
+| MF07 | malformed | text is right-to-left script | 422 | — | — | — | — |  |
+| MF08 | malformed | text is 60,000 characters | 413 | — | — | — | — |  |
+| RQ01 | malformed | no text field at all | 400 | — | — | — | — |  |
+| RQ02 | malformed | no creator_id | 400 | — | — | — | — |  |
+| RQ03 | malformed | text is a number | 400 | — | — | — | — |  |
+| RQ04 | malformed | text is a list | 400 | — | — | — | — |  |
+| RQ05 | malformed | text is null | 400 | — | — | — | — |  |
+| RQ06 | malformed | creator_id is an object | 400 | — | — | — | — |  |
+| RQ07 | malformed | body is a JSON array, not an object | 400 | — | — | — | — |  |
+| RQ08 | malformed | body is unparseable JSON | 400 | — | — | — | — |  |
+| RQ09 | malformed | body is empty | 400 | — | — | — | — |  |
+| RQ10 | malformed | body is form-encoded, not JSON | 400 | — | — | — | — |  |
+| RQ11 | malformed | body is JSON claiming to be plain text | 429 | — | — | — | — |  |
+| RQ12 | malformed | deeply nested JSON | 400 | — | — | — | — |  |
+| FL01_01 | flood_same_creator | 20 rapid submissions from one creator | 422 | — | — | — | — |  |
+| FL01_02 | flood_same_creator | 20 rapid submissions from one creator | 422 | — | — | — | — |  |
+| FL01_03 | flood_same_creator | 20 rapid submissions from one creator | 422 | — | — | — | — |  |
+| FL01_04 | flood_same_creator | 20 rapid submissions from one creator | 422 | — | — | — | — |  |
+| FL01_05 | flood_same_creator | 20 rapid submissions from one creator | 422 | — | — | — | — |  |
+| FL01_06 | flood_same_creator | 20 rapid submissions from one creator | 422 | — | — | — | — |  |
+| FL01_07 | flood_same_creator | 20 rapid submissions from one creator | 429 | — | — | — | — |  |
+| FL01_08 | flood_same_creator | 20 rapid submissions from one creator | 429 | — | — | — | — |  |
+| FL01_09 | flood_same_creator | 20 rapid submissions from one creator | 429 | — | — | — | — |  |
+| FL01_10 | flood_same_creator | 20 rapid submissions from one creator | 429 | — | — | — | — |  |
+| FL01_11 | flood_same_creator | 20 rapid submissions from one creator | 429 | — | — | — | — |  |
+| FL01_12 | flood_same_creator | 20 rapid submissions from one creator | 429 | — | — | — | — |  |
+
+*Score columns are the two signals and their average, from the log. `Verdict` is mine to fill in.*
+
 
 
 **Ten audit log entries from the run**
@@ -298,11 +359,13 @@ whose work got caught by it:
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |
+| 1. Real human comments rarely called AI | at most 1 of 10 labeled AI | 0 of 10 AI (7 human, 3 unsure) | 0 of 10 AI (7 human, 3 unsure) | 0 of 10 AI (7 human, 3 unsure) |  |
+| 2. Plain writing never called AI | 0 of 5 AI; at least 3 unsure or human | 0 of 5 AI (2 human, 3 unsure) | 0 of 5 AI (2 human, 3 unsure) | 0 of 5 AI (2 human, 3 unsure) |  |
+| 3. Spread, and all three labels reachable | mean gap at least 0.30; no clearly-AI piece labeled human; all 3 labels appear | gap about 0.40; ai_01 unsure, ai_02-05 AI; all 3 labels appear | same | same |  |
+| 4. Appeals always change status and are recorded | 10 of 10 appeals succeed; unknown id gets 404 and no log line | 10 of 10 (`check_appeals.py`); unknown id 404, log unchanged | not re-run | not re-run |  |
+| 5. Bad input refused cleanly | 7 of 7 get a 4xx, none a 500, `/ping` still answers | 7 of 7 (six 400, one 413) | 7 of 7 (six 400, one 413) | 7 of 7 (six 400, one 413) |  |
+
+*Criterion 4 is not in `scenarios.py` because it needs a submission before an appeal; `check_appeals.py` tests it. The model gave identical results in all three trials, so the three runs do not differ.*
 
 **Real output from one trial**, pasted as text, naming the file and function
 that produced it:
@@ -340,6 +403,65 @@ that produced it:
 ### Attack Run — After
 
 <!-- Same format. `run_attacks.py --label after` -->
+
+| ID | Family | What it targeted | Status | Guess | Model | Style | Combined | Verdict |
+|---|---|---|---|---|---|---|---|---|
+| EV01 | evasion | signal two: typos raise word variety | 200 | unsure | 0.164 | 0.867 | 0.515 |  |
+| EV02 | evasion | signal two: broken-up sentences raise length spread | 200 | unsure | 0.594 | 0.100 | 0.347 |  |
+| EV03 | evasion | signal two: a pasted quotation changes the shape | 200 | unsure | 0.666 | 0.325 | 0.495 |  |
+| EV04 | evasion | signal one: unusual words raise perplexity | 200 | unsure | 0.611 | 0.834 | 0.723 |  |
+| EV05 | evasion | both signals: heavy human editing pass | 200 | human | 0.321 | 0.082 | 0.202 |  |
+| EV06 | evasion | signal two: one very long sentence and one very short | 200 | unsure | 0.573 | 0.166 | 0.370 |  |
+| EV07 | evasion | signal two: padding with punctuation | 200 | unsure | 0.586 | 0.500 | 0.543 |  |
+| EV08 | evasion | signal one: text below the token window | 422 | — | — | — | — |  |
+| EV09 | evasion | both: AI text with a human opening paragraph bolted on | 200 | unsure | 0.704 | 0.291 | 0.498 |  |
+| EV10 | evasion | signal two: repeated stanza structure | 200 | unsure | 0.979 | 0.566 | 0.773 |  |
+| FP01 | false_positive | plain, clear human writing with no flourishes | 200 | unsure | 0.618 | 0.399 | 0.508 |  |
+| FP02 | false_positive | human writing in a formal register | 200 | unsure | 0.739 | 0.814 | 0.776 |  |
+| FP03 | false_positive | a non-native English speaker writing carefully | 200 | unsure | 0.805 | 0.646 | 0.726 |  |
+| FP04 | false_positive | a student essay written to a rubric | 200 | unsure | 0.833 | 0.551 | 0.692 |  |
+| FP05 | false_positive | technical documentation written by a person | 200 | unsure | 0.800 | 0.774 | 0.787 |  |
+| FP06 | false_positive | a person imitating a formal template | 200 | unsure | 0.881 | 0.310 | 0.596 |  |
+| FP07 | false_positive | human writing that repeats a phrase deliberately | 200 | unsure | 0.882 | 0.197 | 0.539 |  |
+| FP08 | false_positive | very short genuine human submission | 422 | — | — | — | — |  |
+| PI01 | prompt_injection | instruction to ignore the check | 200 | unsure | 0.463 | 0.100 | 0.281 |  |
+| PI02 | prompt_injection | instruction disguised as a system message | 200 | human | 0.204 | 0.088 | 0.146 |  |
+| PI03 | prompt_injection | instruction wrapped in the writer's voice | 200 | unsure | 0.594 | 0.536 | 0.565 |  |
+| PI04 | prompt_injection | attempt to make the label text hostile | 200 | unsure | 0.500 | 0.403 | 0.452 |  |
+| PI05 | prompt_injection | attempt to inject into the audit log | 200 | unsure | 0.640 | 0.229 | 0.434 |  |
+| PI06 | prompt_injection | instruction plus real human text | 200 | unsure | 0.558 | 0.409 | 0.484 |  |
+| MF01 | malformed | text is only whitespace | 400 | — | — | — | — |  |
+| MF02 | malformed | text is a single character | 422 | — | — | — | — |  |
+| MF03 | malformed | text is control characters | 422 | — | — | — | — |  |
+| MF04 | malformed | text is only punctuation | 422 | — | — | — | — |  |
+| MF05 | malformed | text is a very long single word | 422 | — | — | — | — |  |
+| MF06 | malformed | text is emoji only | 422 | — | — | — | — |  |
+| MF07 | malformed | text is right-to-left script | 422 | — | — | — | — |  |
+| MF08 | malformed | text is 60,000 characters | 413 | — | — | — | — |  |
+| RQ01 | malformed | no text field at all | 400 | — | — | — | — |  |
+| RQ02 | malformed | no creator_id | 400 | — | — | — | — |  |
+| RQ03 | malformed | text is a number | 400 | — | — | — | — |  |
+| RQ04 | malformed | text is a list | 400 | — | — | — | — |  |
+| RQ05 | malformed | text is null | 400 | — | — | — | — |  |
+| RQ06 | malformed | creator_id is an object | 400 | — | — | — | — |  |
+| RQ07 | malformed | body is a JSON array, not an object | 400 | — | — | — | — |  |
+| RQ08 | malformed | body is unparseable JSON | 400 | — | — | — | — |  |
+| RQ09 | malformed | body is empty | 400 | — | — | — | — |  |
+| RQ10 | malformed | body is form-encoded, not JSON | 400 | — | — | — | — |  |
+| RQ11 | malformed | body is JSON claiming to be plain text | 429 | — | — | — | — |  |
+| RQ12 | malformed | deeply nested JSON | 400 | — | — | — | — |  |
+| FL01_01 | flood_same_creator | 20 rapid submissions from one creator | 422 | — | — | — | — |  |
+| FL01_02 | flood_same_creator | 20 rapid submissions from one creator | 422 | — | — | — | — |  |
+| FL01_03 | flood_same_creator | 20 rapid submissions from one creator | 422 | — | — | — | — |  |
+| FL01_04 | flood_same_creator | 20 rapid submissions from one creator | 422 | — | — | — | — |  |
+| FL01_05 | flood_same_creator | 20 rapid submissions from one creator | 422 | — | — | — | — |  |
+| FL01_06 | flood_same_creator | 20 rapid submissions from one creator | 422 | — | — | — | — |  |
+| FL01_07 | flood_same_creator | 20 rapid submissions from one creator | 429 | — | — | — | — |  |
+| FL01_08 | flood_same_creator | 20 rapid submissions from one creator | 429 | — | — | — | — |  |
+| FL01_09 | flood_same_creator | 20 rapid submissions from one creator | 429 | — | — | — | — |  |
+| FL01_10 | flood_same_creator | 20 rapid submissions from one creator | 429 | — | — | — | — |  |
+| FL01_11 | flood_same_creator | 20 rapid submissions from one creator | 429 | — | — | — | — |  |
+| FL01_12 | flood_same_creator | 20 rapid submissions from one creator | 429 | — | — | — | — |  |
 
 
 

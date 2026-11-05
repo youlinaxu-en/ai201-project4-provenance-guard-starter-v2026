@@ -71,7 +71,9 @@ WEIGHT_STYLE_SIGNAL = 0.5
 # getting through. There is no setting that avoids the trade — only settings
 # that decide who pays for it.
 
-HUMAN_THRESHOLD = 0.35
+HUMAN_THRESHOLD = 0.25   # lowered from 0.35 in unit 8: EV02 and PI01 (AI text with short
+                         # sentences or an injected line added) scored 0.28-0.35 and got the
+                         # "human" label on weak evidence
 AI_THRESHOLD = 0.80   # raised from 0.65: a wrong AI label costs a writer far more
                       # than a missed AI text costs the site (see criteria.md)
 
